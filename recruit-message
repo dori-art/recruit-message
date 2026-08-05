@@ -1,0 +1,268 @@
+<div id="recruit-tool-root"></div>
+<style>
+  #recruit-tool-root {
+    --bg: #F6F1E9;
+    --panel: #FFFFFF;
+    --ink: #2E2118;
+    --ink-soft: #6B5D4F;
+    --line: #E4D9C8;
+    --brown: #4A3427;
+    --brown-deep: #2E2118;
+    --caramel: #B4834B;
+    --caramel-soft: #EFE0C9;
+    --accent: #7A9E7E;
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    padding: 28px 20px 40px;
+    box-sizing: border-box;
+    min-height: 100%;
+  }
+  #recruit-tool-root * { box-sizing: border-box; }
+
+  .rt-wrap { max-width: 760px; margin: 0 auto; }
+
+  .rt-header { margin-bottom: 22px; }
+  .rt-eyebrow {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--caramel); font-weight: 700; margin-bottom: 6px;
+  }
+  .rt-title { font-size: 22px; font-weight: 800; color: var(--brown-deep); letter-spacing: -0.01em; }
+  .rt-sub { font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
+
+  .rt-tabs {
+    display: flex; gap: 6px; margin-bottom: 18px;
+    background: var(--caramel-soft); padding: 4px; border-radius: 12px;
+  }
+  .rt-tab {
+    flex: 1; padding: 10px 8px; text-align: center; font-size: 13px; font-weight: 600;
+    border-radius: 9px; cursor: pointer; color: var(--brown); border: none; background: transparent;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .rt-tab.active { background: var(--brown-deep); color: #fff; box-shadow: 0 2px 8px rgba(46,33,24,0.25); }
+  .rt-tab:not(.active):hover { background: rgba(255,255,255,0.6); }
+
+  .rt-panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .rt-panel-title { font-size: 13px; font-weight: 700; color: var(--brown-deep); margin-bottom: 14px; }
+
+  .rt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+  .rt-field { display: flex; flex-direction: column; gap: 5px; }
+  .rt-field.full { grid-column: 1 / -1; }
+  .rt-field label { font-size: 11.5px; font-weight: 600; color: var(--ink-soft); }
+  .rt-field input {
+    font-family: inherit; font-size: 13.5px; padding: 9px 10px;
+    border: 1px solid var(--line); border-radius: 8px; background: #FCFAF6; color: var(--ink);
+    outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .rt-field input:focus { border-color: var(--caramel); box-shadow: 0 0 0 3px rgba(180,131,75,0.15); }
+
+  .rt-output-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .rt-output-title { font-size: 13px; font-weight: 700; color: var(--brown-deep); }
+  .rt-copy-btn {
+    font-family: inherit; font-size: 12.5px; font-weight: 700; color: #fff;
+    background: var(--brown); border: none; border-radius: 8px; padding: 8px 14px;
+    cursor: pointer; transition: background 0.15s ease, transform 0.1s ease;
+  }
+  .rt-copy-btn:hover { background: var(--brown-deep); }
+  .rt-copy-btn:active { transform: scale(0.97); }
+  .rt-copy-btn.copied { background: var(--accent); }
+
+  .rt-output {
+    white-space: pre-wrap; font-size: 13.5px; line-height: 1.65; color: var(--ink);
+    background: #FCFAF6; border: 1px dashed var(--line); border-radius: 10px;
+    padding: 16px; min-height: 120px;
+  }
+
+  .rt-hint { font-size: 11.5px; color: var(--ink-soft); margin-top: 10px; line-height: 1.5; }
+
+  @media (max-width: 480px) {
+    .rt-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+(function() {
+  const root = document.getElementById('recruit-tool-root');
+  const WD = ['일','월','화','수','목','금','토'];
+
+  function fmtDate(dateStr) {
+    if (!dateStr) return { text: '____년 __월 __일', wd: '_' };
+    const d = new Date(dateStr + 'T00:00:00');
+    return { text: `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`, wd: WD[d.getDay()] };
+  }
+  function fmtShortDate(dateStr) {
+    if (!dateStr) return { text: '__월 __일', wd: '_' };
+    const d = new Date(dateStr + 'T00:00:00');
+    return { text: `${d.getMonth()+1}월 ${d.getDate()}일`, wd: WD[d.getDay()] };
+  }
+
+  const state = {
+    tab: 1,
+    t1: { name:'', corp:'주식회사 더커피코리아', date1:'', time1:'', date2:'', time2:'', place:'면접은 본사(이수역 인근)에서 대면으로 진행됩니다.' },
+    t2: { name:'', date:'', time:'', place:'본사 (서울시 서초구 서초대로4길 3, 더커피타워)', duration:'약 40분', contact:'' },
+    t3: { name:'', date:'', place:'더커피 본사 (서울 서초구 서초대로4길 3)', hours:'10:00 - 19:00' },
+  };
+
+  const TABS = [
+    { id: 1, label: '① 서류합격·면접조율' },
+    { id: 2, label: '② 면접확정안내' },
+    { id: 3, label: '③ 입사안내' },
+  ];
+
+  const FIELDS = {
+    1: [
+      { key:'name', label:'지원자명', ph:'홍길동' },
+      { key:'corp', label:'법인명', ph:'주식회사 더커피코리아' },
+      { key:'date1', label:'면접일 1', type:'date' },
+      { key:'time1', label:'면접시간 1', ph:'14:00' },
+      { key:'date2', label:'면접일 2', type:'date' },
+      { key:'time2', label:'면접시간 2', ph:'16:30' },
+      { key:'place', label:'면접 장소 문구', full:true, ph:'면접은 본사(이수역 인근)에서 대면으로 진행됩니다.' },
+    ],
+    2: [
+      { key:'name', label:'지원자명', ph:'홍길동' },
+      { key:'date', label:'면접일', type:'date' },
+      { key:'time', label:'면접시간', ph:'14시 00분' },
+      { key:'contact', label:'담당자 연락처', ph:'010-0000-0000' },
+      { key:'place', label:'장소 문구', full:true, ph:'본사 (서울시 서초구 서초대로4길 3, 더커피타워)' },
+      { key:'duration', label:'소요시간', ph:'약 40분' },
+    ],
+    3: [
+      { key:'name', label:'지원자명', ph:'홍길동' },
+      { key:'date', label:'입사일', type:'date' },
+      { key:'place', label:'출근 장소', full:true, ph:'더커피 본사 (서울 서초구 서초대로4길 3)' },
+      { key:'hours', label:'근무 시간', ph:'10:00 - 19:00' },
+    ],
+  };
+
+  function buildMessage() {
+    if (state.tab === 1) {
+      const s = state.t1;
+      const d1 = fmtShortDate(s.date1), d2 = fmtShortDate(s.date2);
+      return `안녕하세요 ${s.name || 'OOO'}님, \n`+
+        `${s.corp || 'OOO'} 채용담당자입니다.\n`+
+        `${s.corp || 'OOO'}에 지원해 주셔서 감사합니다. 서류전형에 합격하셨으며, 면접 일정을 조율드리고자 합니다.\n`+
+        `아래 일정 중 가능한 날짜와 시간을 회신 부탁드립니다.\n`+
+        `- ${d1.text} (${d1.wd}) ${s.time1 || '__:__'}\n`+
+        `- ${d2.text} (${d2.wd}) ${s.time2 || '__:__'}\n`+
+        `*${s.place}\n`+
+        `감사합니다.`;
+    }
+    if (state.tab === 2) {
+      const s = state.t2;
+      const d = fmtDate(s.date);
+      return `안녕하세요 ${s.name || 'OOO'}님, 면접 일정 확인 부탁드립니다.\n`+
+        `1. 일시 : ${d.text} (${d.wd}) ${s.time || '__시 __분'}\n`+
+        `2. 장소 : ${s.place}\n`+
+        `3. 소요시간 : ${s.duration}\n`+
+        `도착하시면 ${s.contact || '담당자 번호'}로 문자 부탁드립니다.\n`+
+        `별도의 준비사항은 없으며, 편안한 마음으로 오셔서 더커피코리아를 알아가는 시간이 되시길 바랍니다.\n`+
+        `*참석 여부에 변동이 있을 경우 최소 하루 전까지 연락 부탁드립니다.\n`+
+        `감사합니다.`;
+    }
+    const s = state.t3;
+    const d = fmtDate(s.date);
+    return `${s.name || 'OOO'}님, \n`+
+      `더커피코리아 입사를 진심으로 축하드리며 또 환영합니다!\n`+
+      `입사 및 첫 출근 관련하여 몇 가지 안내사항을 전달드립니다.\n`+
+      `[첫 출근 안내]\n`+
+      `1. 입사일 : ${d.text} (${d.wd})\n`+
+      `2. 출근 장소 및 근로 시간\n`+
+      `장소 : ${s.place}\n`+
+      `근무 시간 : ${s.hours}\n`+
+      `* 근로계약서는 금일 휴대폰 번호(카카오톡)로 전송 예정입니다.\n`+
+      `근로계약서 작성을 위한 생년월일 문자로 회신 부탁드립니다.\n`+
+      `[필요 구비 서류]\n`+
+      `1. 주민등록등본 또는 사본\n`+
+      `2. 최종학력 졸업증명서\n`+
+      `3. 건강보험 자격득실 확인서\n`+
+      `4. 가족관계증명서\n`+
+      `5. 통장 사본\n`+
+      `6. 전 직장 원천징수영수증 (해당 연도 근로자에 한함)\n`+
+      `서명시 필수 구비 서류를 전자 근로계약서에 직접 첨부하여 제출 부탁드립니다.\n`+
+      `궁금하신 사항 있으시면 언제든지 편하게 연락 부탁드립니다.\n`+
+      `감사합니다.`;
+  }
+
+  function render() {
+    const stateKey = state.tab === 1 ? 't1' : state.tab === 2 ? 't2' : 't3';
+    const s = state[stateKey];
+    const fields = FIELDS[state.tab];
+
+    root.innerHTML = `
+      <div class="rt-wrap">
+        <div class="rt-header">
+          <div class="rt-eyebrow">더커피코리아 · 인사총무팀</div>
+          <div class="rt-title">채용 안내 멘트 생성기</div>
+          <div class="rt-sub">입력만 하면 멘트가 바로 완성돼요. 기록은 남기지 않으니 페이지를 새로고침하면 초기화돼요.</div>
+        </div>
+
+        <div class="rt-tabs">
+          ${TABS.map(t => `<button class="rt-tab ${t.id===state.tab?'active':''}" data-tab="${t.id}">${t.label}</button>`).join('')}
+        </div>
+
+        <div class="rt-panel">
+          <div class="rt-panel-title">입력</div>
+          <div class="rt-grid">
+            ${fields.map(f => f.spacer ? `<div></div>` : `
+              <div class="rt-field ${f.full ? 'full' : ''}">
+                <label>${f.label}</label>
+                <input type="${f.type || 'text'}" data-key="${f.key}" placeholder="${f.ph || ''}" value="${(s[f.key] || '').replace(/"/g,'&quot;')}" />
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="rt-panel">
+          <div class="rt-output-head">
+            <div class="rt-output-title">생성된 멘트</div>
+            <button class="rt-copy-btn" id="rt-copy">복사하기</button>
+          </div>
+          <div class="rt-output" id="rt-output"></div>
+          <div class="rt-hint">이 창은 임시 작업용이라 별도로 저장되지 않아요. 필요한 멘트를 복사한 뒤 카톡/메일 등에 붙여넣어 사용하세요.</div>
+        </div>
+      </div>
+    `;
+
+    root.querySelector('#rt-output').textContent = buildMessage();
+
+    root.querySelectorAll('.rt-tab').forEach(btn => {
+      btn.addEventListener('click', () => { state.tab = Number(btn.dataset.tab); render(); });
+    });
+
+    root.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        s[inp.dataset.key] = inp.value;
+        root.querySelector('#rt-output').textContent = buildMessage();
+      });
+    });
+
+    root.querySelector('#rt-copy').addEventListener('click', () => {
+      const text = root.querySelector('#rt-output').textContent;
+      const btn = root.querySelector('#rt-copy');
+      const done = () => {
+        btn.textContent = '복사됨 ✓';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '복사하기'; btn.classList.remove('copied'); }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(() => {
+          const ta = document.createElement('textarea');
+          ta.value = text; document.body.appendChild(ta); ta.select();
+          document.execCommand('copy'); document.body.removeChild(ta); done();
+        });
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta); done();
+      }
+    });
+  }
+
+  render();
+})();
+</script>
+
