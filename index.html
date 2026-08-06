@@ -115,7 +115,7 @@
     tab: 1,
     t1: { name:'', corp:'더커피코리아', date1:'', time1:'', date2:'', time2:'', place:'면접은 본사(이수역 인근)에서 대면으로 진행됩니다.' },
     t2: { name:'', date:'', time:'', place:'본사 (서울시 서초구 서초대로4길 3, 더커피타워)', duration:'약 40분', contact:'' },
-    t3: { name:'', date:'', place:'더커피 본사 (서울 서초구 서초대로4길 3)', hours:'10:00 - 19:00' },
+    t3: { name:'', date:'', place:'더커피 본사 (서울 서초구 서초대로4길 3)', hoursStart:'10:00', hoursEnd:'19:00' },
   };
 
   const TABS = [
@@ -146,7 +146,8 @@
       { key:'name', label:'지원자명', ph:'홍길동' },
       { key:'date', label:'입사일', type:'date' },
       { key:'place', label:'출근 장소', full:true, ph:'더커피 본사 (서울 서초구 서초대로4길 3)' },
-      { key:'hours', label:'근무 시간', ph:'10:00 - 19:00' },
+      { key:'hoursStart', label:'근무 시작', type:'time' },
+      { key:'hoursEnd', label:'근무 종료', type:'time' },
     ],
   };
 
@@ -184,7 +185,7 @@
       `1. 입사일 : ${d.text} (${d.wd})\n`+
       `2. 출근 장소 및 근로 시간\n`+
       `장소 : ${s.place}\n`+
-      `근무 시간 : ${s.hours}\n`+
+      `근무 시간 : ${s.hoursStart || '__:__'} - ${s.hoursEnd || '__:__'}\n`+
       `* 근로계약서는 금일 휴대폰 번호(카카오톡)로 전송 예정입니다.\n`+
       `근로계약서 작성을 위한 생년월일 문자로 회신 부탁드립니다.\n`+
       `[필요 구비 서류]\n`+
@@ -254,6 +255,15 @@
         s[inp.dataset.key] = inp.value;
         root.querySelector('#rt-output').textContent = buildMessage();
       });
+      // For date/time inputs: open the native picker on any click in the box,
+      // not just the small calendar/clock icon.
+      if (inp.type === 'date' || inp.type === 'time') {
+        inp.addEventListener('click', () => {
+          if (typeof inp.showPicker === 'function') {
+            try { inp.showPicker(); } catch (e) { /* ignore unsupported */ }
+          }
+        });
+      }
     });
 
     root.querySelector('#rt-copy').addEventListener('click', () => {
