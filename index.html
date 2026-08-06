@@ -86,6 +86,49 @@
   @media (max-width: 480px) {
     .rt-grid { grid-template-columns: 1fr; }
   }
+
+  /* Dial time picker */
+  .rt-dial-input {
+    position: relative;
+    font-family: inherit; font-size: 13.5px; padding: 9px 10px;
+    border: 1px solid var(--line); border-radius: 8px; background: #FCFAF6; color: var(--ink);
+    cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    user-select: none;
+  }
+  .rt-dial-input:hover { border-color: var(--caramel); }
+  .rt-dial-input.empty .rt-dial-value { color: #B3A491; }
+  .rt-dial-icon { font-size: 13px; opacity: 0.6; }
+
+  .rt-dial-pop {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 40;
+    background: #fff; border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(46,33,24,0.18);
+    padding: 10px 10px 12px; width: 160px;
+  }
+  .rt-dial-cols { position: relative; display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .rt-dial-highlight {
+    position: absolute; left: 6px; right: 6px; top: 72px; height: 36px;
+    background: var(--caramel-soft); border-radius: 8px; pointer-events: none; z-index: 0;
+  }
+  .rt-dial-col {
+    position: relative; z-index: 1; height: 180px; width: 56px; overflow-y: scroll;
+    scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .rt-dial-col::-webkit-scrollbar { display: none; }
+  .rt-dial-pad { height: 72px; }
+  .rt-dial-item {
+    height: 36px; line-height: 36px; text-align: center; font-size: 15px; color: #C3B49E;
+    scroll-snap-align: center; font-variant-numeric: tabular-nums; transition: color 0.1s ease, font-weight 0.1s ease;
+  }
+  .rt-dial-item.active { color: var(--brown-deep); font-weight: 700; }
+  .rt-dial-sep { font-size: 15px; font-weight: 700; color: var(--brown-deep); z-index: 1; }
+  .rt-dial-done {
+    display: block; width: 100%; margin-top: 10px; font-family: inherit;
+    font-size: 12.5px; font-weight: 700; color: #fff; background: var(--brown);
+    border: none; border-radius: 8px; padding: 7px 0; cursor: pointer;
+  }
+  .rt-dial-done:hover { background: var(--brown-deep); }
 </style>
 
 <script>
@@ -110,6 +153,99 @@
     return `${Number(h)}시 ${m}분`;
   }
   const CORP_OPTIONS = ['네고홈 부동산', '네고홈', '더커피코리아', '더크림베이글스', '더커피홀딩스', '피알엠', '하이퍼라이프케어'];
+  const ITEM_H = 36;
+  const HOURS = Array.from({length:24}, (_, i) => i);
+  const MINUTES = Array.from({length:60}, (_, i) => i);
+  const pad2 = (n) => String(n).padStart(2, '0');
+
+  let closeOpenDial = null;
+
+  function openDialPopover(fieldEl, key, sObj) {
+    if (closeOpenDial) closeOpenDial();
+
+    const current = sObj[key] || '';
+    const [ch, cm] = current ? current.split(':').map(Number) : [9, 0];
+
+    const pop = document.createElement('div');
+    pop.className = 'rt-dial-pop';
+    pop.innerHTML = `
+      <div class="rt-dial-cols">
+        <div class="rt-dial-highlight"></div>
+        <div class="rt-dial-col" data-col="h">
+          <div class="rt-dial-pad"></div>
+          ${HOURS.map(h => `<div class="rt-dial-item" data-v="${h}">${pad2(h)}</div>`).join('')}
+          <div class="rt-dial-pad"></div>
+        </div>
+        <div class="rt-dial-sep">:</div>
+        <div class="rt-dial-col" data-col="m">
+          <div class="rt-dial-pad"></div>
+          ${MINUTES.map(m => `<div class="rt-dial-item" data-v="${m}">${pad2(m)}</div>`).join('')}
+          <div class="rt-dial-pad"></div>
+        </div>
+      </div>
+      <button type="button" class="rt-dial-done">완료</button>
+    `;
+    fieldEl.appendChild(pop);
+
+    const hCol = pop.querySelector('[data-col="h"]');
+    const mCol = pop.querySelector('[data-col="m"]');
+    hCol.scrollTop = ch * ITEM_H;
+    mCol.scrollTop = cm * ITEM_H;
+
+    function markActive(col) {
+      const idx = Math.round(col.scrollTop / ITEM_H);
+      col.querySelectorAll('.rt-dial-item').forEach((it, i) => it.classList.toggle('active', i === idx));
+      return idx;
+    }
+    markActive(hCol);
+    markActive(mCol);
+
+    function currentValue() {
+      const hi = Math.max(0, Math.min(23, Math.round(hCol.scrollTop / ITEM_H)));
+      const mi = Math.max(0, Math.min(59, Math.round(mCol.scrollTop / ITEM_H)));
+      return `${pad2(hi)}:${pad2(mi)}`;
+    }
+
+    function commit() {
+      const val = currentValue();
+      sObj[key] = val;
+      fieldEl.querySelector('.rt-dial-value').textContent = val;
+      fieldEl.classList.remove('empty');
+      root.querySelector('#rt-output').textContent = buildMessage();
+    }
+
+    let hTimer, mTimer;
+    hCol.addEventListener('scroll', () => {
+      markActive(hCol);
+      clearTimeout(hTimer);
+      hTimer = setTimeout(() => { markActive(hCol); commit(); }, 100);
+    });
+    mCol.addEventListener('scroll', () => {
+      markActive(mCol);
+      clearTimeout(mTimer);
+      mTimer = setTimeout(() => { markActive(mCol); commit(); }, 100);
+    });
+
+    function close() {
+      pop.remove();
+      document.removeEventListener('mousedown', onOutside, true);
+      closeOpenDial = null;
+    }
+    function onOutside(e) {
+      if (!pop.contains(e.target) && e.target !== fieldEl && !fieldEl.contains(e.target)) {
+        commit();
+        close();
+      }
+    }
+    pop.querySelector('.rt-dial-done').addEventListener('click', (e) => {
+      e.stopPropagation();
+      commit();
+      close();
+    });
+
+    closeOpenDial = () => { commit(); close(); };
+    setTimeout(() => document.addEventListener('mousedown', onOutside, true), 0);
+  }
 
   const state = {
     tab: 1,
@@ -129,15 +265,15 @@
       { key:'name', label:'지원자명', ph:'홍길동' },
       { key:'corp', label:'법인명', type:'select', options: CORP_OPTIONS },
       { key:'date1', label:'면접일 1', type:'date' },
-      { key:'time1', label:'면접시간 1 (선택)', type:'time' },
+      { key:'time1', label:'면접시간 1 (선택)', type:'dial-time' },
       { key:'date2', label:'면접일 2', type:'date' },
-      { key:'time2', label:'면접시간 2 (선택)', type:'time' },
+      { key:'time2', label:'면접시간 2 (선택)', type:'dial-time' },
       { key:'place', label:'면접 장소 문구', full:true, ph:'면접은 본사(이수역 인근)에서 대면으로 진행됩니다.' },
     ],
     2: [
       { key:'name', label:'지원자명', ph:'홍길동' },
       { key:'date', label:'면접일', type:'date' },
-      { key:'time', label:'면접시간 (선택)', type:'time' },
+      { key:'time', label:'면접시간 (선택)', type:'dial-time' },
       { key:'contact', label:'담당자 연락처', ph:'010-0000-0000' },
       { key:'place', label:'장소 문구', full:true, ph:'본사 (서울시 서초구 서초대로4길 3, 더커피타워)' },
       { key:'duration', label:'소요시간', ph:'약 40분' },
@@ -146,8 +282,8 @@
       { key:'name', label:'지원자명', ph:'홍길동' },
       { key:'date', label:'입사일', type:'date' },
       { key:'place', label:'출근 장소', full:true, ph:'더커피 본사 (서울 서초구 서초대로4길 3)' },
-      { key:'hoursStart', label:'근무 시작', type:'time' },
-      { key:'hoursEnd', label:'근무 종료', type:'time' },
+      { key:'hoursStart', label:'근무 시작', type:'dial-time' },
+      { key:'hoursEnd', label:'근무 종료', type:'dial-time' },
     ],
   };
 
@@ -225,6 +361,8 @@
                 <label>${f.label}</label>
                 ${f.type === 'select'
                   ? `<select data-key="${f.key}">${f.options.map(o => `<option value="${o}" ${s[f.key]===o?'selected':''}>${o}</option>`).join('')}</select>`
+                  : f.type === 'dial-time'
+                  ? `<div class="rt-dial-input ${s[f.key] ? '' : 'empty'}" data-key="${f.key}"><span class="rt-dial-value">${s[f.key] || '시간 선택'}</span><span class="rt-dial-icon">⏱</span></div>`
                   : `<input type="${f.type || 'text'}" data-key="${f.key}" placeholder="${f.ph || ''}" value="${(s[f.key] || '').replace(/"/g,'&quot;')}" />`
                 }
               </div>
@@ -255,15 +393,22 @@
         s[inp.dataset.key] = inp.value;
         root.querySelector('#rt-output').textContent = buildMessage();
       });
-      // For date/time inputs: open the native picker on any click in the box,
-      // not just the small calendar/clock icon.
-      if (inp.type === 'date' || inp.type === 'time') {
+      // For date inputs: open the native picker on any click in the box,
+      // not just the small calendar icon.
+      if (inp.type === 'date') {
         inp.addEventListener('click', () => {
           if (typeof inp.showPicker === 'function') {
             try { inp.showPicker(); } catch (e) { /* ignore unsupported */ }
           }
         });
       }
+    });
+
+    root.querySelectorAll('.rt-dial-input').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDialPopover(el, el.dataset.key, s);
+      });
     });
 
     root.querySelector('#rt-copy').addEventListener('click', () => {
