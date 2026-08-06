@@ -98,6 +98,11 @@
   .rt-dial-input:hover { border-color: var(--caramel); }
   .rt-dial-input.empty .rt-dial-value { color: #B3A491; }
   .rt-dial-icon { font-size: 13px; opacity: 0.6; }
+  .rt-dial-clear {
+    font-size: 13px; color: var(--ink-soft); opacity: 0.6; line-height: 1; padding: 0 2px;
+    border-radius: 50%; transition: opacity 0.15s ease, background 0.15s ease;
+  }
+  .rt-dial-clear:hover { opacity: 1; background: var(--caramel-soft); }
 
   .rt-dial-pop {
     position: absolute; top: calc(100% + 6px); left: 0; z-index: 40;
@@ -129,6 +134,12 @@
     border: none; border-radius: 8px; padding: 7px 0; cursor: pointer;
   }
   .rt-dial-done:hover { background: var(--brown-deep); }
+  .rt-dial-clear-btn {
+    display: block; width: 100%; margin-top: 6px; font-family: inherit;
+    font-size: 12px; font-weight: 600; color: var(--ink-soft); background: transparent;
+    border: none; padding: 4px 0; cursor: pointer; text-decoration: underline;
+  }
+  .rt-dial-clear-btn:hover { color: var(--brown-deep); }
 </style>
 
 <script>
@@ -152,7 +163,7 @@
     const [h, m] = timeStr.split(':');
     return `${Number(h)}시 ${m}분`;
   }
-  const CORP_OPTIONS = ['네고홈 부동산', '네고홈', '더커피코리아', '더크림베이글스', '더커피홀딩스', '피알엠', '하이퍼라이프케어'];
+  const CORP_OPTIONS = ['주식회사 네고홈 부동산', '주식회사 네고홈', '주식회사 더커피코리아', '주식회사 더크림베이글스', '주식회사 더커피홀딩스', '주식회사 피알엠', '주식회사 하이퍼라이프케어'];
   const ITEM_H = 36;
   const HOURS = Array.from({length:24}, (_, i) => i);
   const MINUTES = Array.from({length:60}, (_, i) => i);
@@ -184,6 +195,7 @@
         </div>
       </div>
       <button type="button" class="rt-dial-done">완료</button>
+      <button type="button" class="rt-dial-clear-btn">지우기</button>
     `;
     fieldEl.appendChild(pop);
 
@@ -211,6 +223,21 @@
       sObj[key] = val;
       fieldEl.querySelector('.rt-dial-value').textContent = val;
       fieldEl.classList.remove('empty');
+      let iconEl = fieldEl.querySelector('.rt-dial-icon, .rt-dial-clear');
+      if (iconEl && !iconEl.classList.contains('rt-dial-clear')) {
+        const clearEl = document.createElement('span');
+        clearEl.className = 'rt-dial-clear';
+        clearEl.dataset.clear = key;
+        clearEl.title = '지우기';
+        clearEl.textContent = '✕';
+        clearEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          sObj[key] = '';
+          root.querySelector('#rt-output').textContent = buildMessage();
+          render();
+        });
+        iconEl.replaceWith(clearEl);
+      }
       root.querySelector('#rt-output').textContent = buildMessage();
     }
 
@@ -242,6 +269,15 @@
       commit();
       close();
     });
+    pop.querySelector('.rt-dial-clear-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      sObj[key] = '';
+      fieldEl.querySelector('.rt-dial-value').textContent = '시간 선택';
+      fieldEl.classList.add('empty');
+      root.querySelector('#rt-output').textContent = buildMessage();
+      closeOpenDial = null;
+      close();
+    });
 
     closeOpenDial = () => { commit(); close(); };
     setTimeout(() => document.addEventListener('mousedown', onOutside, true), 0);
@@ -249,7 +285,7 @@
 
   const state = {
     tab: 1,
-    t1: { name:'', corp:'더커피코리아', date1:'', time1:'', date2:'', time2:'', place:'면접은 본사(이수역 인근)에서 대면으로 진행됩니다.' },
+    t1: { name:'', corp:'주식회사 더커피코리아', date1:'', time1:'', date2:'', time2:'', place:'면접은 본사(이수역 인근)에서 대면으로 진행됩니다.' },
     t2: { name:'', date:'', time:'', place:'본사 (서울시 서초구 서초대로4길 3, 더커피타워)', duration:'약 40분', contact:'' },
     t3: { name:'', date:'', place:'더커피 본사 (서울 서초구 서초대로4길 3)', hoursStart:'10:00', hoursEnd:'19:00' },
   };
@@ -362,7 +398,7 @@
                 ${f.type === 'select'
                   ? `<select data-key="${f.key}">${f.options.map(o => `<option value="${o}" ${s[f.key]===o?'selected':''}>${o}</option>`).join('')}</select>`
                   : f.type === 'dial-time'
-                  ? `<div class="rt-dial-input ${s[f.key] ? '' : 'empty'}" data-key="${f.key}"><span class="rt-dial-value">${s[f.key] || '시간 선택'}</span><span class="rt-dial-icon">⏱</span></div>`
+                  ? `<div class="rt-dial-input ${s[f.key] ? '' : 'empty'}" data-key="${f.key}"><span class="rt-dial-value">${s[f.key] || '시간 선택'}</span>${s[f.key] ? `<span class="rt-dial-clear" data-clear="${f.key}" title="지우기">✕</span>` : `<span class="rt-dial-icon">⏱</span>`}</div>`
                   : `<input type="${f.type || 'text'}" data-key="${f.key}" placeholder="${f.ph || ''}" value="${(s[f.key] || '').replace(/"/g,'&quot;')}" />`
                 }
               </div>
@@ -406,8 +442,20 @@
 
     root.querySelectorAll('.rt-dial-input').forEach(el => {
       el.addEventListener('click', (e) => {
+        if (e.target.closest('.rt-dial-clear')) return; // handled separately below
         e.stopPropagation();
         openDialPopover(el, el.dataset.key, s);
+      });
+    });
+
+    root.querySelectorAll('.rt-dial-clear').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (closeOpenDial) closeOpenDial = null; // discard any pending popover commit
+        const key = btn.dataset.clear;
+        s[key] = '';
+        root.querySelector('#rt-output').textContent = buildMessage();
+        render();
       });
     });
 
