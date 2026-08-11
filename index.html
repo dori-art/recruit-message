@@ -79,7 +79,7 @@
     display: block; width: 100%; resize: vertical;
     font-family: inherit; white-space: pre-wrap; font-size: 13.5px; line-height: 1.65; color: var(--ink);
     background: #FCFAF6; border: 1px dashed var(--line); border-radius: 10px;
-    padding: 16px; min-height: 160px; outline: none;
+    padding: 16px; min-height: 340px; outline: none;
   }
   .rt-output:focus { border-color: var(--caramel); border-style: solid; }
 
@@ -414,7 +414,7 @@
             <div class="rt-output-title">생성된 멘트 <span style="font-weight:400; color:var(--ink-soft);">(직접 수정 가능)</span></div>
             <button class="rt-copy-btn" id="rt-copy">복사하기</button>
           </div>
-          <textarea class="rt-output" id="rt-output" spellcheck="false"></textarea>
+          <textarea class="rt-output" id="rt-output" rows="14" spellcheck="false"></textarea>
           <div class="rt-hint">이 창은 임시 작업용이라 별도로 저장되지 않아요. 내용을 직접 수정해도 되고, 필요한 멘트를 복사한 뒤 카톡/메일 등에 붙여넣어 사용하세요.</div>
         </div>
       </div>
