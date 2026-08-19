@@ -288,14 +288,16 @@
   const state = {
     tab: 1,
     t1: { name:'', corp:'주식회사 더커피코리아', date1:'', time1:'', date2:'', time2:'', place:'면접은 본사(이수역 인근)에서 대면으로 진행됩니다.' },
-    t2: { name:'', date:'', time:'', place:'본사 (서울시 서초구 서초대로4길 3, 더커피타워)', duration:'약 40분', contact:'' },
-    t3: { name:'', date:'', place:'더커피 본사 (서울 서초구 서초대로4길 3)', hoursStart:'10:00', hoursEnd:'19:00' },
+    t2: { name:'', corp:'주식회사 더커피코리아', date:'', time:'', place:'본사 (서울시 서초구 서초대로4길 3, 더커피타워)', duration:'약 40분', contact:'' },
+    t3: { name:'', corp:'주식회사 더커피코리아', date:'', place:'더커피 본사 (서울 서초구 서초대로4길 3)', hoursStart:'10:00', hoursEnd:'19:00' },
+    t4: { name:'', mailId:'', mailPw:'', wehagoId:'', wehagoPw:'', nahagoLink:'', msId:'', msPw:'' },
   };
 
   const TABS = [
     { id: 1, label: '① 서류합격·면접조율' },
     { id: 2, label: '② 면접확정안내' },
     { id: 3, label: '③ 입사안내' },
+    { id: 4, label: '④ 온보딩안내' },
   ];
 
   const FIELDS = {
@@ -310,6 +312,7 @@
     ],
     2: [
       { key:'name', label:'지원자명', ph:'홍길동' },
+      { key:'corp', label:'법인명', type:'select', options: CORP_OPTIONS },
       { key:'date', label:'면접일', type:'date' },
       { key:'time', label:'면접시간 (선택)', type:'dial-time' },
       { key:'contact', label:'담당자 연락처', ph:'010-0000-0000' },
@@ -318,10 +321,21 @@
     ],
     3: [
       { key:'name', label:'지원자명', ph:'홍길동' },
+      { key:'corp', label:'법인명', type:'select', options: CORP_OPTIONS },
       { key:'date', label:'입사일', type:'date' },
       { key:'place', label:'출근 장소', full:true, ph:'더커피 본사 (서울 서초구 서초대로4길 3)' },
       { key:'hoursStart', label:'근무 시작', type:'dial-time' },
       { key:'hoursEnd', label:'근무 종료', type:'dial-time' },
+    ],
+    4: [
+      { key:'name', label:'입사자명', ph:'홍길동' },
+      { key:'mailId', label:'사내메일 아이디', ph:'hong@thecoffeekorea.com' },
+      { key:'mailPw', label:'사내메일 비밀번호', ph:'초기 비밀번호' },
+      { key:'wehagoId', label:'위하고 아이디', ph:'' },
+      { key:'wehagoPw', label:'위하고 비밀번호', ph:'' },
+      { key:'nahagoLink', label:'나하고 가입 링크', full:true, ph:'https://...' },
+      { key:'msId', label:'MS 계정 아이디 (선택)', ph:'' },
+      { key:'msPw', label:'MS 계정 비밀번호 (선택)', ph:'' },
     ],
   };
 
@@ -347,36 +361,59 @@
         `2. 장소 : ${s.place}\n`+
         `3. 소요시간 : ${s.duration}\n`+
         `도착하시면 ${s.contact || '담당자 번호'}로 문자 부탁드립니다.\n`+
-        `별도의 준비사항은 없으며, 편안한 마음으로 오셔서 더커피코리아를 알아가는 시간이 되시길 바랍니다.\n`+
+        `별도의 준비사항은 없으며, 편안한 마음으로 오셔서 ${s.corp || 'OOO'}를 알아가는 시간이 되시길 바랍니다.\n`+
         `*참석 여부에 변동이 있을 경우 최소 하루 전까지 연락 부탁드립니다.\n`+
         `감사합니다.`;
     }
-    const s = state.t3;
-    const d = fmtDate(s.date);
-    return `${s.name || 'OOO'}님, \n`+
-      `더커피코리아 입사를 진심으로 축하드리며 또 환영합니다!\n`+
-      `입사 및 첫 출근 관련하여 몇 가지 안내사항을 전달드립니다.\n`+
-      `[첫 출근 안내]\n`+
-      `1. 입사일 : ${d.text} (${d.wd})\n`+
-      `2. 출근 장소 및 근로 시간\n`+
-      `장소 : ${s.place}\n`+
-      `근무 시간 : ${s.hoursStart || '__:__'} - ${s.hoursEnd || '__:__'}\n`+
-      `* 근로계약서는 금일 휴대폰 번호(카카오톡)로 전송 예정입니다.\n`+
-      `근로계약서 작성을 위한 생년월일 문자로 회신 부탁드립니다.\n`+
-      `[필요 구비 서류]\n`+
-      `1. 주민등록등본 또는 사본\n`+
-      `2. 최종학력 졸업증명서\n`+
-      `3. 건강보험 자격득실 확인서\n`+
-      `4. 가족관계증명서\n`+
-      `5. 통장 사본\n`+
-      `6. 전 직장 원천징수영수증 (해당 연도 근로자에 한함)\n`+
-      `서명시 필수 구비 서류를 전자 근로계약서에 직접 첨부하여 제출 부탁드립니다.\n`+
-      `궁금하신 사항 있으시면 언제든지 편하게 연락 부탁드립니다.\n`+
-      `감사합니다.`;
+    if (state.tab === 3) {
+      const s = state.t3;
+      const d = fmtDate(s.date);
+      return `${s.name || 'OOO'}님, \n`+
+        `${s.corp || 'OOO'} 입사를 진심으로 축하드리며 또 환영합니다!\n`+
+        `입사 및 첫 출근 관련하여 몇 가지 안내사항을 전달드립니다.\n`+
+        `[첫 출근 안내]\n`+
+        `1. 입사일 : ${d.text} (${d.wd})\n`+
+        `2. 출근 장소 및 근로 시간\n`+
+        `장소 : ${s.place}\n`+
+        `근무 시간 : ${s.hoursStart || '__:__'} - ${s.hoursEnd || '__:__'}\n`+
+        `* 근로계약서는 금일 휴대폰 번호(카카오톡)로 전송 예정입니다.\n`+
+        `근로계약서 작성을 위한 생년월일 문자로 회신 부탁드립니다.\n`+
+        `[필요 구비 서류]\n`+
+        `1. 주민등록등본 또는 사본\n`+
+        `2. 최종학력 졸업증명서\n`+
+        `3. 건강보험 자격득실 확인서\n`+
+        `4. 가족관계증명서\n`+
+        `5. 통장 사본\n`+
+        `6. 전 직장 원천징수영수증 (해당 연도 근로자에 한함)\n`+
+        `서명시 필수 구비 서류를 전자 근로계약서에 직접 첨부하여 제출 부탁드립니다.\n`+
+        `궁금하신 사항 있으시면 언제든지 편하게 연락 부탁드립니다.\n`+
+        `감사합니다.`;
+    }
+    // tab 4: 온보딩 안내
+    const s = state.t4;
+    const msSection = (s.msId || s.msPw)
+      ? `\n\n5. MS 계정\n아이디 : ${s.msId}\n패스워드 : ${s.msPw}`
+      : '';
+    return `안녕하세요 ${s.name || 'OOO'}님, 입사를 환영합니다!\n`+
+      `업무 진행 시 필요한 사항들에 대해 안내드립니다.\n\n`+
+      `1. 사내메일 계정 공유\n`+
+      `아이디 : ${s.mailId}\n`+
+      `패스워드 : ${s.mailPw}\n\n`+
+      `2. 위하고 계정 공유\n`+
+      `아이디 : ${s.wehagoId}\n`+
+      `패스워드 : ${s.wehagoPw}\n`+
+      `- 품의 상신 시 사용\n\n`+
+      `3. 나하고 가입 링크 전달\n`+
+      `${s.nahagoLink || '(가입 링크 입력 필요)'}\n`+
+      `* 연차 신청 및 근태 관리\n\n`+
+      `4. 슬랙 초대\n`+
+      `* 사내 소통 진행, 메일로 초대링크 전달 예정이니 가입 진행 부탁드리겠습니다!`+
+      msSection+
+      `\n\n감사합니다.`;
   }
 
   function render() {
-    const stateKey = state.tab === 1 ? 't1' : state.tab === 2 ? 't2' : 't3';
+    const stateKey = 't' + state.tab;
     const s = state[stateKey];
     const fields = FIELDS[state.tab];
 
