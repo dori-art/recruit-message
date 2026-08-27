@@ -210,16 +210,21 @@
 
     const hCol = pop.querySelector('[data-col="h"]');
     const mCol = pop.querySelector('[data-col="m"]');
-    hCol.scrollTop = ch * ITEM_H;
-    mCol.scrollTop = cm * ITEM_H;
+
+    // Setting scrollTop right after insertion can be ignored by the browser
+    // before layout has run, so defer it one frame.
+    requestAnimationFrame(() => {
+      hCol.scrollTop = ch * ITEM_H;
+      mCol.scrollTop = cm * ITEM_H;
+      markActive(hCol);
+      markActive(mCol);
+    });
 
     function markActive(col) {
       const idx = Math.round(col.scrollTop / ITEM_H);
       col.querySelectorAll('.rt-dial-item').forEach((it, i) => it.classList.toggle('active', i === idx));
       return idx;
     }
-    markActive(hCol);
-    markActive(mCol);
 
     function currentValue() {
       const hi = Math.max(0, Math.min(23, Math.round(hCol.scrollTop / ITEM_H)));
@@ -262,6 +267,15 @@
       mTimer = setTimeout(() => { markActive(mCol); commit(); }, 100);
     });
 
+    // Let people click a specific number directly instead of only scrolling.
+    pop.querySelectorAll('.rt-dial-item').forEach((item, idx) => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const col = item.closest('.rt-dial-col');
+        col.scrollTo({ top: idx * ITEM_H, behavior: 'smooth' });
+      });
+    });
+
     function close() {
       pop.remove();
       document.removeEventListener('mousedown', onOutside, true);
@@ -297,7 +311,7 @@
     t1: { name:'', corp:'주식회사 더커피코리아', date1:'', time1:'', date2:'', time2:'', place:'면접은 본사(이수역 인근)에서 대면으로 진행됩니다.' },
     t2: { name:'', corp:'주식회사 더커피코리아', date:'', time:'', place:'본사 (서울시 서초구 서초대로4길 3, 더커피타워)', duration:'약 40분', contact:'' },
     t3: { name:'', corp:'주식회사 더커피코리아', date:'', place:'더커피 본사 (서울 서초구 서초대로4길 3)', hoursStart:'10:00', hoursEnd:'19:00' },
-    t4: { name:'', mailId:'', mailPw:'', mailLink:'https://www.google.com/', wehagoOn:true, nahagoOn:true, slackOn:true, msId:'', msPw:'', etc:'' },
+    t4: { name:'', mailId:'', mailPw:'', mailLink:'https://www.google.com/', wehagoOn:true, nahagoOn:true, slackOn:true, contractOn:true, msId:'', msPw:'', etc:'' },
   };
 
   const TABS = [
@@ -342,6 +356,7 @@
       { key:'wehagoOn', label:'위하고 안내 포함', type:'checkbox' },
       { key:'nahagoOn', label:'나하고 안내 포함', type:'checkbox' },
       { key:'slackOn', label:'슬랙 안내 포함', type:'checkbox' },
+      { key:'contractOn', label:'근로계약서 안내 포함', type:'checkbox' },
       { key:'msId', label:'MS 계정 아이디 (선택)', ph:'' },
       { key:'msPw', label:'MS 계정 비밀번호 (선택)', ph:'' },
       { key:'etc', label:'기타 안내', full:true, ph:'추가로 전달할 내용이 있으면 입력하세요' },
@@ -427,6 +442,13 @@
       sections.push(
         `▶ 슬랙 초대\n`+
         `사내 소통을 위해 메일로 초대링크 전달 예정이니 가입 진행 부탁드립니다.`
+      );
+    }
+    if (s.contractOn) {
+      sections.push(
+        `▶ 근로계약서 안내\n`+
+        `근로계약서는 카카오톡 모두싸인으로 발송되었습니다.\n`+
+        `입사일 당일까지 서명 완료 부탁드립니다.`
       );
     }
     if (s.msId || s.msPw) {
@@ -519,6 +541,7 @@
     root.querySelectorAll('.rt-dial-input').forEach(el => {
       el.addEventListener('click', (e) => {
         if (e.target.closest('.rt-dial-clear')) return; // handled separately below
+        if (e.target.closest('.rt-dial-pop')) return; // clicks inside an already-open picker shouldn't reopen it
         e.stopPropagation();
         openDialPopover(el, el.dataset.key, s);
       });
