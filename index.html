@@ -268,11 +268,12 @@
     });
 
     // Let people click a specific number directly instead of only scrolling.
-    pop.querySelectorAll('.rt-dial-item').forEach((item, idx) => {
-      item.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const col = item.closest('.rt-dial-col');
-        col.scrollTo({ top: idx * ITEM_H, behavior: 'smooth' });
+    [hCol, mCol].forEach(col => {
+      col.querySelectorAll('.rt-dial-item').forEach((item, idx) => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          col.scrollTo({ top: idx * ITEM_H, behavior: 'smooth' });
+        });
       });
     });
 
