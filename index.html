@@ -172,7 +172,7 @@
     const [h, m] = timeStr.split(':');
     return `${Number(h)}시 ${m}분`;
   }
-  const CORP_OPTIONS = ['주식회사 네고홈 부동산', '주식회사 네고홈', '주식회사 더커피코리아', '주식회사 더크림베이글스', '주식회사 더커피홀딩스', '주식회사 피알엠', '주식회사 하이퍼라이프케어'];
+  const CORP_OPTIONS = ['주식회사 네고홈 부동산', '주식회사 네고홈', '주식회사 더커피코리아', '주식회사 더크림베이글스', '주식회사 더커피홀딩스', '주식회사 피알엠', '주식회사 영국어린이원'];
   const ITEM_H = 36;
   const HOURS = Array.from({length:24}, (_, i) => i);
   const MINUTES = Array.from({length:60}, (_, i) => i);
@@ -312,14 +312,16 @@
     t1: { name:'', corp:'주식회사 더커피코리아', date1:'', time1:'', date2:'', time2:'', place:'면접은 본사(이수역 인근)에서 대면으로 진행됩니다.' },
     t2: { name:'', corp:'주식회사 더커피코리아', date:'', time:'', place:'본사 (서울시 서초구 서초대로4길 3, 더커피타워)', duration:'약 40분', contact:'' },
     t3: { name:'', corp:'주식회사 더커피코리아', date:'', place:'더커피 본사 (서울 서초구 서초대로4길 3)', hoursStart:'10:00', hoursEnd:'19:00' },
-    t4: { name:'', mailId:'', mailPw:'', mailLink:'https://www.google.com/', wehagoOn:true, nahagoOn:true, slackOn:true, contractOn:true, msId:'', msPw:'', etc:'' },
+    t4: { name:'', corp:'주식회사 더커피코리아' },
+    t5: { name:'', mailId:'', mailPw:'', mailLink:'https://www.google.com/', wehagoOn:true, nahagoOn:true, slackOn:true, contractOn:true, msId:'', msPw:'', etc:'' },
   };
 
   const TABS = [
     { id: 1, label: '① 서류합격·면접조율' },
     { id: 2, label: '② 면접확정안내' },
     { id: 3, label: '③ 입사안내' },
-    { id: 4, label: '④ 온보딩안내' },
+    { id: 4, label: '④ 불합격안내' },
+    { id: 5, label: '⑤ 온보딩안내' },
   ];
 
   const FIELDS = {
@@ -350,6 +352,10 @@
       { key:'hoursEnd', label:'근무 종료', type:'dial-time' },
     ],
     4: [
+      { key:'name', label:'지원자명', ph:'홍길동' },
+      { key:'corp', label:'법인명', type:'select', options: CORP_OPTIONS },
+    ],
+    5: [
       { key:'name', label:'입사자명', ph:'홍길동' },
       { key:'mailId', label:'사내메일 아이디 (선택)', ph:'hong@thecoffeekorea.com' },
       { key:'mailPw', label:'사내메일 비밀번호 (선택)', ph:'초기 비밀번호' },
@@ -371,11 +377,12 @@
       const line2 = s.date2 ? `- ${fmtShortDate(s.date2).text} (${fmtShortDate(s.date2).wd})${s.time2 ? ' ' + s.time2 : ''}\n` : '';
       return `안녕하세요 ${s.name || 'OOO'}님, \n`+
         `${s.corp || 'OOO'} 채용담당자입니다.\n`+
-        `${s.corp || 'OOO'}에 지원해 주셔서 감사합니다. 서류전형에 합격하셨으며, 면접 일정을 조율드리고자 합니다.\n`+
-        `아래 일정 중 가능한 날짜와 시간을 회신 부탁드립니다.\n`+
+        `${s.corp || 'OOO'}에 지원해 주셔서 감사합니다.\n\n`+
+        `제출해 주신 서류를 살펴본 결과, 직접 뵙고 이야기 나눠보고 싶어 면접을 요청드립니다.\n`+
+        `아래 일정 중 가능한 날짜와 시간을 회신 부탁드립니다.\n\n`+
         `- ${d1.text} (${d1.wd})${s.time1 ? ' ' + s.time1 : ''}\n`+
         line2+
-        `*${s.place}\n`+
+        `\n*${s.place}\n\n`+
         `감사합니다.`;
     }
     if (state.tab === 2) {
@@ -414,8 +421,18 @@
         `궁금하신 사항 있으시면 언제든지 편하게 연락 부탁드립니다.\n`+
         `감사합니다.`;
     }
-    // tab 4: 온보딩 안내
-    const s = state.t4;
+    // tab 4: 불합격 안내
+    if (state.tab === 4) {
+      const s = state.t4;
+      return `안녕하세요 ${s.name || 'OOO'}님, \n`+
+        `${s.corp || 'OOO'} 채용담당자입니다.\n\n`+
+        `먼저 저희 채용 절차에 관심을 갖고 소중한 시간 내어 지원해 주셔서 진심으로 감사드립니다.\n\n`+
+        `신중히 고민한 결과, 아쉽게도 이번 채용에서는 함께하지 못하게 되었다는 말씀을 드리게 되었습니다. 지원자님의 역량이 부족해서가 아니라, 이번 포지션과의 적합도 등 여러 요소를 종합적으로 고려한 결정이었다는 점 양해 부탁드립니다.\n\n`+
+        `귀한 시간 내어 지원해 주신 점 다시 한번 감사드리며, 앞으로 좋은 기회로 다시 뵐 수 있기를 바라겠습니다.\n\n`+
+        `감사합니다.`;
+    }
+    // tab 5: 온보딩 안내
+    const s = state.t5;
     const sections = [];
     if (s.mailId || s.mailPw) {
       sections.push(
